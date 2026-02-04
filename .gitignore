@@ -1,2 +1,3 @@
 /data/*
 /docker-hadoop-spark/
+docker-hadoop-spark-master/
