@@ -1,4 +1,6 @@
 /data/*
 /docker-hadoop-spark/
 /.venv/
-docker-hadoop-spark-master/
+
+
+venv311/
