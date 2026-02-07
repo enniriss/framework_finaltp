@@ -4,3 +4,7 @@
 
 
 venv311/
+
+docker-hadoop-spark-master/source/user_demographics.csv
+
+docker-hadoop-spark-master/source/user_shopping_behavior.csv
