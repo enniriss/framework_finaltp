@@ -24,14 +24,20 @@ df_returns = df_silver.select(*cols_returns)
 # Enregistrement forcé dans la base gold
 
 
-df_returns.write.mode("overwrite").saveAsTable("gold.predictive_returns")
-
 # --- DATAMART 2 : PERSONAE ---
 cols_personae = [
     'user_id', 'gender', 'ethnicity', 'social_media_influence_score', 
     'loyalty_program_member'
 ]
 df_personae = df_silver.select(*cols_personae)
-df_personae.write.mode("overwrite").saveAsTable("gold.customer_segmentation")
-print("dfdf", df_silver)
+
+# Gold sans Hive
+df_returns.write.mode("overwrite").parquet(
+    "hdfs://namenode:9000/data/gold/predictive_returns"
+)
+
+df_personae.write.mode("overwrite").parquet(
+    "hdfs://namenode:9000/data/gold/customer_segmentation"
+)
+
 print("Succes : Les datamarts ont ete crees dans la base 'gold' !")
