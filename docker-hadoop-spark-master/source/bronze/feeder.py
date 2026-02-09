@@ -1,50 +1,44 @@
 from datetime import date
 from pyspark.sql import SparkSession, functions as F
-import time
 
 spark = (
     SparkSession.builder
-    .appName("feeder")
+    .appName("bronze_loader")
     .getOrCreate()
 )
 
-demographics_path = "file:///source/user_demographics.csv"
-shopping_path = "file:///source/user_shopping_behavior.csv"
+# Configuration des chemins
+sources = {
+    "user_info1": "file:///source/user_info1.csv",
+    "user_info2": "file:///source/user_info2.csv"
+}
+output_root = "hdfs://namenode:9000/data/raw"
 
-df_demographics = (
-    spark.read
-    .option("header", "true")
-    .option("inferSchema", "true")
-    .csv(demographics_path)
-)
+for table_name, path in sources.items():
+    # 1. Lecture du CSV
+    df = spark.read.option("header", "true").option("inferSchema", "true").csv(path)
+    
+    # 2. Conversion de la colonne date en format DateType (pour extraction)
+    # On suppose que le format est YYYY-MM-DD
+    df_with_date = df.withColumn("dt", F.to_date(F.col("last_purchase_date")))
+    
+    # 3. Creation des colonnes de partitionnement basees sur la DONNeE (pas sur l'horloge)
+    # C'est ce qui cree ton historique automatiquement !
+    df_final = (
+        df_with_date.withColumn("year", F.year(F.col("dt")))
+                    .withColumn("month", F.month(F.col("dt")))
+                    .withColumn("day", F.dayofmonth(F.col("dt")))
+                    .drop("dt") # On supprime la colonne temporaire
+    )
+    
+    # 4. ecriture partitionnee
+    output_path = str(output_root) + "/" + str(table_name)    
+    (
+        df_final.repartition(1)
+        .write
+        .mode("append") # On utilise append pour ne pas supprimer les jours deje existants
+        .partitionBy("year", "month", "day")
+        .parquet(output_path)
+    )
 
-df_shopping = (
-    spark.read
-    .option("header", "true")
-    .option("inferSchema", "true")
-    .csv(shopping_path)
-)
-
-# Jointure sur 'user_id'
-df = df_demographics.join(df_shopping, on="user_id", how="inner")
-
-today = date.today()
-df2 = (
-    df.withColumn("year", F.lit(today.year))
-      .withColumn("month", F.lit(today.month))
-      .withColumn("day", F.lit(today.day))
-)
-
-df2.cache()
-
-output_base = "hdfs://namenode:9000/data/raw/breweries_partitioned"
-
-time.sleep(60)
-
-(
-    df2.repartition(8)
-    .write
-    .mode("overwrite")
-    .partitionBy("year", "month", "day")
-    .parquet(output_base)
-)
+print("Ingestion Bronze terminee : L'historique a ete reparti dans les partitions HDFS.")

@@ -9,35 +9,10 @@ dokcer-compose up -d
 ```
 
 ``` bash
-docker cp ./data/user_demographics.csv namenode:demographics.csv
-docker cp ./data/user_shopping_behavior.csv namenode:shopping_behavior.csv
+docker exec spark-master /spark/bin/spark-submit --master spark://spark-master:7077 /source/bronze/feeder.py
+docker exec spark-master /spark/bin/spark-submit --master spark://spark-master:7077 /source/silver/Clean.py
+docker exec spark-master /spark/bin/spark-submit --master spark://spark-master:7077 /source/gold/datamart.py
 ```
 
-``` bash
-docker exec -it namenode bash
-```
-
-``` bash
-hdfs dfs -mkdir -p /data/openbeer/demographics
-hdfs dfs -mkdir -p /data/openbeer/shopping_behavior
-```
-
-``` bash
-hdfs dfs -put demographics.csv /data/openbeer/demographics/demographics.csv
-hdfs dfs -put shopping_behavior.csv /data/openbeer/shopping_behavior/shopping_behavior.csv
-```
-
-# Lancer Spark
-
-``` bash
-docker exec -it spark-master bash
-```
-
-``` bash
-/spark/bin/pyspark --master spark://spark-master:7077
-```
-
-``` bash
-demographics = spark.read.csv("hdfs://namenode:9000/data/openbeer/demographics/demographics.csv")
-shopping_behavior = spark.read.csv("hdfs://namenode:9000/data/openbeer/shopping_behavior/shopping_behavior.csv")
-```
+/spark/bin/pyspark --master spark://spark-master:7077 --conf spark.sql.catalogImplementation=hive
+spark.table("gold.predictive_returns").show(5)
