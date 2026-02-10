@@ -1,4 +1,5 @@
 from datetime import date
+import os
 from pyspark.sql import SparkSession, functions as F
 
 spark = (
@@ -7,12 +8,17 @@ spark = (
     .getOrCreate()
 )
 
-# Configuration des chemins
+# Configuration des chemins (adaptables)
+base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+def _to_file_uri(path):
+    return "file://" + path
+
 sources = {
-    "user_info1": "file:///source/user_info1.csv",
-    "user_info2": "file:///source/user_info2.csv"
+    "user_info1": _to_file_uri(os.path.join(base_dir, "user_info1.csv")),
+    "user_info2": _to_file_uri(os.path.join(base_dir, "user_info2.csv"))
 }
-output_root = "hdfs://namenode:9000/data/raw"
+output_root = os.getenv("RAW_BASE", "/data/raw")
 
 for table_name, path in sources.items():
     # 1. Lecture du CSV

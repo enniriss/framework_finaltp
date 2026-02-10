@@ -74,6 +74,8 @@ services:
     environment:
       - INIT_DAEMON_STEP=setup_spark
       - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - PYSPARK_PYTHON=/usr/bin/python3
+      - PYSPARK_DRIVER_PYTHON=/usr/bin/python3
     volumes:
       - ./source:/source
       - ./pipeline:/opt/pipeline
